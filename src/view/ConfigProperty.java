@@ -14,7 +14,7 @@ public class ConfigProperty extends JFrame {
 
     private Properties properties;
 
-    public ConfigProperty(Panel panel) {
+    public ConfigProperty() {
         setTitle("Configuración de Partida");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setExtendedState(JFrame.MAXIMIZED_BOTH); // Maximizar la ventana en toda la pantalla
@@ -23,7 +23,7 @@ public class ConfigProperty extends JFrame {
         // Cargar las propiedades desde el archivo
         properties = new Properties();
         try {
-            properties.load(new FileInputStream("src/resources/config.properties"));
+            properties.load(new FileInputStream("config.properties"));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -77,7 +77,7 @@ public class ConfigProperty extends JFrame {
                 // Guardar los cambios en el archivo de propiedades
                 properties.setProperty("pointsToWin", txtPointsToWin.getText());
                 properties.setProperty("numberOfGames", txtNumberOfGames.getText());
-                
+
                 for (int i = 1; i <= 5; i++) {
                     // Obtener el nombre del jugador
                     String playerName = ((JTextField) mainPanel.getComponent((i) * 4 + 1)).getText();
@@ -93,11 +93,9 @@ public class ConfigProperty extends JFrame {
                 }
 
                 try {
-                    properties.store(new FileOutputStream("src/resources/config.properties"), null);
+                    properties.store(new FileOutputStream("config.properties"), null);
                     JOptionPane.showMessageDialog(ConfigProperty.this, "Cambios guardados correctamente", "Éxito",
                             JOptionPane.INFORMATION_MESSAGE);
-                    dispose();
-                    panel.setVisible(true);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                     JOptionPane.showMessageDialog(ConfigProperty.this, "Error al guardar los cambios", "Error",
@@ -107,12 +105,8 @@ public class ConfigProperty extends JFrame {
         });
         mainPanel.add(btnSaveChanges);
 
-
         add(mainPanel);
-
         setLocationRelativeTo(null);
-
-        
         setVisible(true);
     }
 
@@ -134,4 +128,8 @@ public class ConfigProperty extends JFrame {
                         BorderFactory.createLineBorder(new Color(50, 205, 50), 3))));
     }
 
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(ConfigProperty::new);
+    }
 }
+

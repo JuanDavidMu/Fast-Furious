@@ -1,13 +1,20 @@
 package view;
 
+import logic.Juego;
+
 import javax.swing.*;
 import javax.swing.border.LineBorder;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Properties;
 
 public class Panel extends JFrame {
+
+    private JuegoView juegoView;
 
     public Panel() {
         setTitle("Rápidos y Furiosos");
@@ -24,58 +31,82 @@ public class Panel extends JFrame {
         JLabel imageLabel = new JLabel(scaledImageIcon);
         mainPanel.add(imageLabel, BorderLayout.NORTH);
 
-        JButton btnStartGame = new JButton("Start Game");
-        JButton btnConfig = new JButton("Config. Games");
-        JButton btnAbout = new JButton("About");
-
+        JButton btnStartGame = new JButton("Iniciar Juego");
         configureButtonStyle(btnStartGame);
-        configureButtonStyle(btnAbout);
-        configureButtonStyle(btnConfig);
-        Panel panel = this;
-        btnAbout.addActionListener(e -> new AboutView(this));
-        btnConfig.addActionListener(new ActionListener(){
 
+        btnStartGame.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ConfigProperty cp = new ConfigProperty(panel);
-                setVisible(false);
-            };
+                iniciarJuego();
+            }
         });
 
-        btnStartGame.setBackground(new Color(50, 205, 50)); // Green color
-        btnAbout.setBackground(new Color(255, 69, 0)); // Orange color
-        btnConfig.setBackground(new Color(143, 163, 194));
-        Font buttonsFont = new Font("Arial", Font.BOLD, 16);
-        btnStartGame.setFont(buttonsFont);
-        btnAbout.setFont(buttonsFont);
-        btnConfig.setFont(buttonsFont);
+        JButton btnConfigGame = new JButton("Configurar Juego");
+        configureButtonStyle(btnConfigGame);
+
+        btnConfigGame.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                configurarJuego();
+            }
+        });
 
         JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(1, 2)); // Añadir botones en una fila
         buttonPanel.add(btnStartGame);
-        buttonPanel.add(btnAbout);
-        buttonPanel.add(btnConfig);
+        buttonPanel.add(btnConfigGame);
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
-        buttonPanel.setBackground(new Color(1,1,8));
+        buttonPanel.setBackground(new Color(1, 1, 8));
+
         add(mainPanel);
-        
+
         setVisible(true);
         setResizable(false);
     }
 
     private void configureButtonStyle(JButton button) {
-        button.setBackground(new Color(50, 205, 50)); 
+        button.setBackground(new Color(50, 205, 50));
         button.setFont(new Font("Arial", Font.BOLD, 16));
         button.setForeground(Color.WHITE);
-
         int borderRadius = 30;
         button.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(new Color(255, 255, 255), 3), 
-                new LineBorder(new Color(50, 205, 50), 3)    
+                new LineBorder(new Color(255, 255, 255), 3),
+                new LineBorder(new Color(50, 205, 50), 3)
         ));
-        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20)); 
+        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+    }
+
+    private void iniciarJuego() {
+        Properties properties = new Properties();
+        try {
+            properties.load(new FileInputStream("config.properties"));
+            int numeroDePartidas = Integer.parseInt(properties.getProperty("numberOfGames"));
+            int puntosACompletar = Integer.parseInt(properties.getProperty("pointsToWin"));
+            String[] nombresJugadores = new String[5];
+            for (int i = 1; i <= 5; i++) {
+                nombresJugadores[i-1] = properties.getProperty("namePlayer" + i);
+            }
+
+            juegoView = new JuegoView(nombresJugadores.length); // Pasar el número de jugadores como parámetro
+            Juego juego = new Juego(numeroDePartidas, puntosACompletar, nombresJugadores, juegoView);
+            juego.iniciarPartidas();
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al cargar el archivo de configuración", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void configurarJuego() {
+        ConfiguracionJuegoDialog dialog = new ConfiguracionJuegoDialog(this);
+        dialog.setVisible(true);
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new Panel());
+        SwingUtilities.invokeLater(Panel::new);
     }
 }
+
+
+
+
+
