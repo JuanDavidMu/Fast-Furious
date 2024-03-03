@@ -77,7 +77,7 @@ public class ConfigProperty extends JFrame {
                 // Guardar los cambios en el archivo de propiedades
                 properties.setProperty("pointsToWin", txtPointsToWin.getText());
                 properties.setProperty("numberOfGames", txtNumberOfGames.getText());
-                
+
                 for (int i = 1; i <= 5; i++) {
                     // Obtener el nombre del jugador
                     String playerName = ((JTextField) mainPanel.getComponent((i) * 4 + 1)).getText();
@@ -93,7 +93,8 @@ public class ConfigProperty extends JFrame {
                 }
 
                 try {
-                    properties.store(new FileOutputStream("src/resources/config.properties"), null);
+                    // Guardar las propiedades en un archivo plano
+                    properties.store(new FileOutputStream("config.properties"), null);
                     JOptionPane.showMessageDialog(ConfigProperty.this, "Cambios guardados correctamente", "Éxito",
                             JOptionPane.INFORMATION_MESSAGE);
                     dispose();
@@ -105,6 +106,7 @@ public class ConfigProperty extends JFrame {
                 }
             }
         });
+
         mainPanel.add(btnSaveChanges);
 
 

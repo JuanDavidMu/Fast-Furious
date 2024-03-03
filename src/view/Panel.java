@@ -2,12 +2,16 @@ package view;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Properties;
 
 public class Panel extends JFrame {
+
 
     public Panel() {
         setTitle("Rápidos y Furiosos");
@@ -42,6 +46,28 @@ public class Panel extends JFrame {
             };
         });
 
+        btnStartGame.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Crear una instancia de GameGUI con los valores configurados
+                int numPlayers = 5; // Número fijo de jugadores
+                int maxPoints = 0;
+                int numGames = 0;
+                try {
+                    Properties properties = new Properties();
+                    properties.load(new FileInputStream("src/resources/config.properties"));
+                    maxPoints = Integer.parseInt(properties.getProperty("pointsToWin"));
+                    numGames = Integer.parseInt(properties.getProperty("numberOfGames"));
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                GameGUI gameGUI = new GameGUI(numPlayers, maxPoints, numGames);
+                gameGUI.setVisible(true);
+                setVisible(false);
+            }
+        });
+
+
         btnStartGame.setBackground(new Color(50, 205, 50)); // Green color
         btnAbout.setBackground(new Color(255, 69, 0)); // Orange color
         btnConfig.setBackground(new Color(143, 163, 194));
@@ -57,25 +83,27 @@ public class Panel extends JFrame {
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
         buttonPanel.setBackground(new Color(1,1,8));
         add(mainPanel);
-        
+
         setVisible(true);
         setResizable(false);
     }
 
     private void configureButtonStyle(JButton button) {
-        button.setBackground(new Color(50, 205, 50)); 
+        button.setBackground(new Color(50, 205, 50));
         button.setFont(new Font("Arial", Font.BOLD, 16));
         button.setForeground(Color.WHITE);
 
         int borderRadius = 30;
         button.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(new Color(255, 255, 255), 3), 
-                new LineBorder(new Color(50, 205, 50), 3)    
+                new LineBorder(new Color(255, 255, 255), 3),
+                new LineBorder(new Color(50, 205, 50), 3)
         ));
-        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20)); 
+        button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new Panel());
     }
 }
+
+

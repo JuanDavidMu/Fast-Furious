@@ -1,54 +1,58 @@
 package model;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Properties;
+import view.GameGUI;
+
+import javax.swing.*;
 import java.util.Random;
 
-public class ThreadManage extends Thread{
+public class ThreadManage extends Thread {
 
-    private Properties pp;
+    private PointsManage pointsManage;
+    private JLabel playerInfoLabel;
+    private GameGUI gameGUI;
+
+    public ThreadManage(PointsManage pointsManage, JLabel playerInfoLabel, GameGUI gameGUI) {
+        this.pointsManage = pointsManage;
+        this.playerInfoLabel = playerInfoLabel;
+        this.gameGUI = gameGUI;
+    }
 
     @Override
     public void run() {
-        pp = new Properties();
-        try {
-            pp.load(new FileInputStream("src/resources/config.properties"));
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        int maxPoints = gameGUI.getMaxPoints();
 
-        int maxPoints = Integer.parseInt(pp.getProperty("pointsToWin"));
-        PointsManage pm = new PointsManage();
-
-        do{
+        do {
             int point = throwDices();
+            pointsManage.sumPoints(point);
 
-            System.out.println("Punto Sacado "+ Thread.currentThread().getName() + " "+ point);
-            pm.sumPoints(point);
+            // Actualizar la información en la interfaz gráfica
+            SwingUtilities.invokeLater(() -> {
+                gameGUI.updatePlayerInfo(playerInfoLabel, Thread.currentThread().getName(), point, pointsManage.getPoints(), maxPoints);
+                gameGUI.updateGameInfo(1); // Actualizar información de la partida
+            });
+
             try {
                 sleep(timeToThrow());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-    
-            System.out.println("Puntos: " + Thread.currentThread().getName() + " " + pm.sumPoints(0));
-            System.out.println("Puntos Restantes: " + Thread.currentThread().getName() + " " + pm.pointsToWin(maxPoints));
-        }while(pm.getPoints() < maxPoints);
+        } while (pointsManage.getPoints() < maxPoints);
 
-        System.out.println(Thread.currentThread() + " ha terminado!!!!!");
-        
+        // Informar a GameGUI que el jugador ha terminado la partida
+        SwingUtilities.invokeLater(gameGUI::playerFinishedGame);
 
+        // Finalizar el juego
+        gameGUI.endGame();
     }
-    
-    public Integer timeToThrow(){
+
+    public Integer timeToThrow() {
         Random rd = new Random();
-        return rd.nextInt(5)*1000;
+        return rd.nextInt(5) * 1000;
     }
-    public Integer throwDices(){
+
+    public Integer throwDices() {
         Random rd = new Random();
-        return rd.nextInt(6)+1;
+        return rd.nextInt(6) + 1;
     }
-    
 }
+
