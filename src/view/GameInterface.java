@@ -1,15 +1,17 @@
 package view;
 
-import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableModel;
 
 import model.PointsManage;
 import model.ThreadManage;
 
+import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
 public class GameInterface extends JFrame {
@@ -32,7 +34,11 @@ public class GameInterface extends JFrame {
 
         // Crear y agregar paneles para cada jugador con separadores
         for (int i = 1; i <= 5; i++) {
-            JPanel playerPanel = createPlayerPanel(i);
+            // Obtener información del jugador desde las propiedades
+            String playerName = properties.getProperty("namePlayer" + i);
+            String playerZone = properties.getProperty("zonePlayer" + i);
+
+            JPanel playerPanel = createPlayerPanel(i, playerName, playerZone);
             add(playerPanel);
         }
 
@@ -61,19 +67,17 @@ public class GameInterface extends JFrame {
         setVisible(true);
     }
 
-    private JPanel createPlayerPanel(int playerNumber) {
-        JPanel playerPanel = new JPanel();
-        playerPanel.setLayout(new BorderLayout()); // Diseño de borde para organizar las tablas
 
-        // Obtener información del jugador desde las propiedades
-        String playerName = properties.getProperty("namePlayer" + playerNumber);
-        String playerZone = properties.getProperty("zonePlayer" + playerNumber);
+    private JPanel createPlayerPanel(int playerNumber, String playerName, String playerZone) {
+        JPanel playerPanel = new JPanel();
+        playerPanel.setName("PlayerPanel" + playerNumber); // Establecer el nombre del panel
+        playerPanel.setLayout(new BorderLayout()); // Diseño de borde para organizar las tablas
 
         // Crear tabla para mostrar la información del jugador
         String[] columnNames = {"Propiedad", "Valor"};
-        String[][] rowData = {
+        Object[][] rowData = {
                 {"Nombre", playerName},
-                {"Zona Horaria", playerZone},
+                {"Zona Horaria", ""},
                 {"Número de Lanzamiento", ""},
                 {"Puntaje en el Lanzamiento", ""},
                 {"Suma de Puntajes", ""},
@@ -83,22 +87,65 @@ public class GameInterface extends JFrame {
         JTable playerTable = new JTable(rowData, columnNames);
         JScrollPane scrollPane = new JScrollPane(playerTable);
         playerPanel.add(scrollPane, BorderLayout.CENTER);
+        Thread updateTimeThread = new Thread(() -> {
+            while (true) {
+                // Obtener la hora actual en la zona horaria del jugador
+                String currentTime = getCurrentTime(playerZone);
+
+                // Actualizar la tabla con la hora actual
+                SwingUtilities.invokeLater(() -> playerTable.setValueAt(currentTime, 1, 1));
+
+                // Esperar un segundo antes de actualizar nuevamente
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        updateTimeThread.start();
 
         return playerPanel;
     }
 
-    private void updatePlayerData(int playerNumber, String hora, String puntos, String puntosSacados, String puntosRestantes) {
+    private String getCurrentTime(String zoneId) {
+        ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of(zoneId));
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+        return currentTime.format(formatter);
+    }
+
+
+
+    public void updatePlayerTimeZone(int playerNumber, String hora) {
+        // Obtener la tabla correspondiente al jugador
+        JTable playerTable = getPlayerTable(playerNumber);
+
+        if (playerTable != null) {
+            // Actualizar el valor en la celda de la zona horaria
+            playerTable.setValueAt(hora, 1, 1); // Cambiado a 1 para la fila de Zona Horaria
+
+            // Notificar a la tabla para que actualice la vista
+            ((AbstractTableModel) playerTable.getModel()).fireTableCellUpdated(1, 1); // Cambiado a 1
+        }
+    }
+
+
+
+    public void updatePlayerData(int playerNumber, String hora, int numeroLanzamiento, int puntajeLanzamiento, int sumaPuntajes, int puntosRestantes) {
         // Obtener la tabla correspondiente al jugador
         JTable playerTable = getPlayerTable(playerNumber);
 
         if (playerTable != null) {
             // Actualizar los valores en las celdas apropiadas
-            playerTable.setValueAt(hora, 2, 1); // Hora
-            playerTable.setValueAt(puntos, 3, 1); // Puntos
-            playerTable.setValueAt(puntosSacados, 4, 1); // Puntos Sacados
-            playerTable.setValueAt(puntosRestantes, 5, 1); // Puntos Restantes
+            playerTable.setValueAt(hora, 1, 1); // Hora
+            playerTable.setValueAt(String.valueOf(numeroLanzamiento), 2, 1); // Número de lanzamiento
+            playerTable.setValueAt(String.valueOf(puntajeLanzamiento), 3, 1); // Puntaje de lanzamiento
+            playerTable.setValueAt(String.valueOf(sumaPuntajes), 4, 1); // Suma de puntajes
+            playerTable.setValueAt(String.valueOf(puntosRestantes), 5, 1); // Puntos restantes para meta
 
             // Notificar a la tabla para que actualice la vista
+            ((AbstractTableModel) playerTable.getModel()).fireTableCellUpdated(1, 1);
             ((AbstractTableModel) playerTable.getModel()).fireTableCellUpdated(2, 1);
             ((AbstractTableModel) playerTable.getModel()).fireTableCellUpdated(3, 1);
             ((AbstractTableModel) playerTable.getModel()).fireTableCellUpdated(4, 1);
@@ -106,22 +153,31 @@ public class GameInterface extends JFrame {
         }
     }
 
-    private JTable getPlayerTable(int playerNumber) {
+
+
+    public JTable getPlayerTable(int playerNumber) {
         Component[] components = getContentPane().getComponents();
-    
+
         for (Component component : components) {
             if (component instanceof JPanel) {
                 JPanel playerPanel = (JPanel) component;
-                if (playerPanel.getName() != null && playerPanel.getName().equals("PlayerPanel" + playerNumber)) {
-                    JScrollPane scrollPane = (JScrollPane) playerPanel.getComponent(0);
-                    return (JTable) scrollPane.getViewport().getView();
+                Component[] subComponents = playerPanel.getComponents(); // Obtener los componentes del panel del jugador
+                for (Component subComponent : subComponents) {
+                    if (subComponent instanceof JScrollPane) {
+                        JScrollPane scrollPane = (JScrollPane) subComponent;
+                        // Obtener la vista del panel de desplazamiento (que debería ser la tabla)
+                        Component view = scrollPane.getViewport().getView();
+                        if (view instanceof JTable && playerPanel.getName() != null && playerPanel.getName().equals("PlayerPanel" + playerNumber)) {
+                            return (JTable) view;
+                        }
+                    }
                 }
             }
         }
-    
+
         return null;
     }
-    
+
 
     private void startGame() {
         // Lógica para iniciar la partida
@@ -133,7 +189,10 @@ public class GameInterface extends JFrame {
         for (int i = 1; i <= 5; i++) {
             PointsManage pointsManage = new PointsManage();
             JLabel playerInfoLabel = new JLabel("Información del Jugador " + i);
-            ThreadManage threadManage = new ThreadManage(i, pointsManage, playerInfoLabel, this);
+            // Obtener el valor de la zona horaria desde las propiedades
+            String timeZone = properties.getProperty("zonePlayer" + i);
+            // Pasar el valor de la zona horaria al constructor de ThreadManage
+            ThreadManage threadManage = new ThreadManage(i, pointsManage, playerInfoLabel, this, timeZone);
 
             // Agregar la etiqueta al panel principal
             JPanel playerPanel = getPlayerPanel(i);
@@ -143,6 +202,7 @@ public class GameInterface extends JFrame {
             threadManage.start();
         }
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(GameInterface::new);
@@ -158,9 +218,8 @@ public class GameInterface extends JFrame {
         return null;  // Devolver null si no se encuentra el panel del jugador
     }
 
-    
-
 }
+
 
 
 

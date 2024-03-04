@@ -3,7 +3,7 @@ package model;
 import view.GameInterface;
 
 import javax.swing.*;
-
+import javax.swing.table.AbstractTableModel;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
@@ -14,11 +14,13 @@ public class ThreadManage extends Thread {
     private PointsManage pointsManage;
     private JLabel playerInfoLabel;
     private GameInterface gameGUI;
-    private int playerNumber;  // Nuevo campo para almacenar el número de jugador
+    private int playerNumber;
+    private String timeZone; // Nuevo campo para almacenar el número de jugador
 
-    public ThreadManage(int playerNumber, PointsManage pointsManage, JLabel playerInfoLabel, GameInterface gameGUI) {
+    public ThreadManage(int playerNumber, PointsManage pointsManage, JLabel playerInfoLabel, GameInterface gameGUI,String timeZone) {
         this.playerNumber = playerNumber;
         this.pointsManage = pointsManage;
+        this.timeZone = timeZone;
         this.playerInfoLabel = playerInfoLabel;
         this.gameGUI = gameGUI;
     }
@@ -51,20 +53,43 @@ public class ThreadManage extends Thread {
 
     private void updateTable(int playerNumber, int throwsCount, int pointsInThrow, int sumPoints, int remainingPoints) {
         SwingUtilities.invokeLater(() -> {
-            // Obtener el panel del jugador correspondiente
             JPanel playerPanel = gameGUI.getPlayerPanel(playerNumber);
-
-            // Actualizar los valores en la tabla
             JTable table = (JTable) ((JScrollPane) playerPanel.getComponent(0)).getViewport().getView();
             table.getModel().setValueAt(throwsCount, 2, 1);
             table.getModel().setValueAt(pointsInThrow, 3, 1);
             table.getModel().setValueAt(sumPoints, 4, 1);
             table.getModel().setValueAt(remainingPoints, 5, 1);
 
-            // Refrescar la tabla
+            // Obtener la zona horaria actual del jugador
+            String timeZoneValue = getTimeZoneValue();
+
+            // Obtener el índice de la fila correspondiente a "Zona Horaria"
+            int timeZoneRow = getTimeZoneRow(table);
+
+            // Asegurarse de que el valor sea un String antes de establecerlo en la tabla
+            table.getModel().setValueAt(timeZoneValue, timeZoneRow, 1);
             table.repaint();
         });
     }
+
+    // Método para obtener el índice de la fila correspondiente a "Zona Horaria"
+    private int getTimeZoneRow(JTable table) {
+        int rowCount = table.getRowCount();
+        for (int i = 0; i < rowCount; i++) {
+            if (table.getValueAt(i, 0).equals("Zona Horaria")) {
+                return i;
+            }
+        }
+        return -1; // Si no se encuentra la fila
+    }
+
+    private String getTimeZoneValue() {
+        // Devolver la zona horaria actual
+        return timeZone;
+    }
+
+
+
 
     public Integer timeToThrow() {
         Random rd = new Random();
@@ -76,3 +101,4 @@ public class ThreadManage extends Thread {
         return rd.nextInt(6) + 1;
     }
 }
+
