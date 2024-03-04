@@ -1,17 +1,23 @@
 package model;
 
-import view.GameGUI;
+import view.GameInterface;
 
 import javax.swing.*;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
 import java.util.Random;
 
 public class ThreadManage extends Thread {
 
     private PointsManage pointsManage;
     private JLabel playerInfoLabel;
-    private GameGUI gameGUI;
+    private GameInterface gameGUI;
+    private int playerNumber;  // Nuevo campo para almacenar el número de jugador
 
-    public ThreadManage(PointsManage pointsManage, JLabel playerInfoLabel, GameGUI gameGUI) {
+    public ThreadManage(int playerNumber, PointsManage pointsManage, JLabel playerInfoLabel, GameInterface gameGUI) {
+        this.playerNumber = playerNumber;
         this.pointsManage = pointsManage;
         this.playerInfoLabel = playerInfoLabel;
         this.gameGUI = gameGUI;
@@ -19,30 +25,45 @@ public class ThreadManage extends Thread {
 
     @Override
     public void run() {
-        int maxPoints = gameGUI.getMaxPoints();
+        Properties pp = new Properties(new Properties());
+        try {
+            pp.load(new FileInputStream("src/resources/config.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        int maxPoints = Integer.parseInt(pp.getProperty("pointsToWin")); // Obtener el valor de pointsToWin
 
         do {
             int point = throwDices();
             pointsManage.sumPoints(point);
-
-            // Actualizar la información en la interfaz gráfica
-            SwingUtilities.invokeLater(() -> {
-                gameGUI.updatePlayerInfo(playerInfoLabel, Thread.currentThread().getName(), point, pointsManage.getPoints(), maxPoints);
-                gameGUI.updateGameInfo(1); // Actualizar información de la partida
-            });
 
             try {
                 sleep(timeToThrow());
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+
+            // Actualizar la tabla en la interfaz gráfica
+            updateTable(playerNumber, pointsManage.getThrowsCount(), point,
+                    pointsManage.getSumPoints(), maxPoints - pointsManage.getPoints());
         } while (pointsManage.getPoints() < maxPoints);
+    }
 
-        // Informar a GameGUI que el jugador ha terminado la partida
-        SwingUtilities.invokeLater(gameGUI::playerFinishedGame);
+    private void updateTable(int playerNumber, int throwsCount, int pointsInThrow, int sumPoints, int remainingPoints) {
+        SwingUtilities.invokeLater(() -> {
+            // Obtener el panel del jugador correspondiente
+            JPanel playerPanel = gameGUI.getPlayerPanel(playerNumber);
 
-        // Finalizar el juego
-        gameGUI.endGame();
+            // Actualizar los valores en la tabla
+            JTable table = (JTable) ((JScrollPane) playerPanel.getComponent(0)).getViewport().getView();
+            table.getModel().setValueAt(throwsCount, 2, 1);
+            table.getModel().setValueAt(pointsInThrow, 3, 1);
+            table.getModel().setValueAt(sumPoints, 4, 1);
+            table.getModel().setValueAt(remainingPoints, 5, 1);
+
+            // Refrescar la tabla
+            table.repaint();
+        });
     }
 
     public Integer timeToThrow() {
@@ -55,4 +76,3 @@ public class ThreadManage extends Thread {
         return rd.nextInt(6) + 1;
     }
 }
-

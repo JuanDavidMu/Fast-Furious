@@ -61,7 +61,7 @@ public class Panel extends JFrame {
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-                GameGUI gameGUI = new GameGUI(numPlayers, maxPoints, numGames);
+                GameInterface gameGUI = new GameInterface();
                 gameGUI.setVisible(true);
                 setVisible(false);
             }

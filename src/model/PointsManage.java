@@ -1,23 +1,29 @@
 package model;
 
 public class PointsManage {
+    private int throwsCount;
+    private int sumPoints;
 
-    private int points;
-
-    public void setPoints(int points) {
-        this.points = points;
+    public PointsManage() {
+        this.throwsCount = 0;
+        this.sumPoints = 0;
     }
+
+    public void sumPoints(int points) {
+        throwsCount++;
+        sumPoints += points;
+    }
+
+    public int getThrowsCount() {
+        return throwsCount;
+    }
+
+    public int getSumPoints() {
+        return sumPoints;
+    }
+
     public int getPoints() {
-        return points;
+        // Suponiendo que el total de puntos es simplemente la suma de los puntos obtenidos
+        return sumPoints;
     }
-
-    public int sumPoints(int newPoints){
-        setPoints(points+=newPoints);
-        return points;
-    }
-
-    public int pointsToWin(int maxPoints){
-        return maxPoints-points;
-    }
-    
 }
