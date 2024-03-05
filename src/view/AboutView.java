@@ -22,8 +22,8 @@ public class AboutView extends JDialog {
         JLabel labelNombre = new JLabel("Nombre:");
         JLabel labelCodigo = new JLabel("Código:");
 
-        JLabel labelNombreValor = new JLabel("Juan David Muñoz Eslava");
-        JLabel labelCodigoValor = new JLabel("202213021");
+        JLabel labelNombreValor = new JLabel("Juan David Muñoz Eslava | Daniel Parra");
+        JLabel labelCodigoValor = new JLabel("202213021 | 202210719");
 
         // Estilos para los labels
         Font labelFont = new Font("Arial", Font.BOLD, 14);
