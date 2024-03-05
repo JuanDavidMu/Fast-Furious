@@ -94,7 +94,7 @@ public class ConfigProperty extends JFrame {
 
                 try {
                     // Guardar las propiedades en un archivo plano
-                    properties.store(new FileOutputStream("config.properties"), null);
+                    properties.store(new FileOutputStream("src/resources/config.properties"), null);
                     JOptionPane.showMessageDialog(ConfigProperty.this, "Cambios guardados correctamente", "Éxito",
                             JOptionPane.INFORMATION_MESSAGE);
                     dispose();

@@ -1,25 +1,38 @@
 package view;
 
-
+import model.PlayerResult;
 import model.PointsManage;
 import model.ThreadManage;
 
 import javax.swing.*;
+import java.util.List;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 
 public class GameInterface extends JFrame {
 
     private Properties properties;
+    private int games;
+    private JButton startButton;
+    private Panel panel;
 
     public GameInterface() {
         // Cargar las propiedades desde el archivo
+        games = 0;
         properties = new Properties();
         try {
             properties.load(new FileInputStream("src/resources/config.properties"));
@@ -31,6 +44,7 @@ public class GameInterface extends JFrame {
         setTitle("Game Interface");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(2, 3, 10, 10)); // Distribución en tres filas y dos columnas con espaciado
+        getContentPane().setBackground(new Color(1, 1, 18)); // Fondo de la ventana principal
 
         // Crear y agregar paneles para cada jugador con separadores
         for (int i = 1; i <= 5; i++) {
@@ -39,25 +53,77 @@ public class GameInterface extends JFrame {
             String playerZone = properties.getProperty("zonePlayer" + i);
 
             JPanel playerPanel = createPlayerPanel(i, playerName, playerZone);
+            playerPanel.setBackground(new Color(1,1,18));
             add(playerPanel);
         }
 
         // Sección para el número de partida y el botón para iniciar la partida
         JPanel controlPanel = new JPanel();
-        controlPanel.setLayout(new GridLayout(1, 1, 10, 10)); // Espaciado entre componentes
+        controlPanel.setLayout(new GridLayout(3, 1, 10, 10)); // Espaciado entre componentes
+        controlPanel.setBackground(new Color(1, 1, 18)); // Fondo del panel de control
 
         // Número de Partida
         JPanel gamePanel = new JPanel();
         gamePanel.setLayout(new GridLayout(1, 1));
-        JLabel gameLabel = new JLabel("Número de Partida: " + properties.getProperty("numberOfGames"));
+        JLabel gameLabel = new JLabel("Número de Partida: " + games + "/" + properties.getProperty("numberOfGames"));
         gameLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        gameLabel.setForeground(Color.WHITE); // Texto blanco
         gamePanel.add(gameLabel);
+        gamePanel.setBackground(new Color(1, 1, 18)); // Fondo del panel de juego
         controlPanel.add(gamePanel);
 
+        JButton showCls = new JButton("Ver Clasificacion");
+        showCls.setEnabled(false);
+
+        JButton returnBtn = new JButton("Volver");
+        returnBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Panel panel = new Panel();
+                setVisible(rootPaneCheckingEnabled);
+                dispose();
+            }
+        });
+
         // Botón para iniciar la partida (tamaño reducido)
-        JButton startButton = new JButton("Iniciar");
-        startButton.addActionListener(e -> startGame());
+        startButton = new JButton("Iniciar");
+        startButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startGame();
+        
+        
+                if (games++ >= Integer.parseInt(properties.getProperty("numberOfGames"))-1) {
+                    startButton.setEnabled(false);
+                    showCls.setEnabled(true);
+                }
+        
+                gameLabel.setText("Número de Partida: " + games + "/" + properties.getProperty("numberOfGames"));
+            }
+        });
+
+        returnBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                panel = new Panel();
+                panel.dispose();
+                
+                dispose();
+            }
+        });
+
+        showCls.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                    showPartialRanking();
+            }
+        });
         controlPanel.add(startButton);
+        controlPanel.add(returnBtn);
+        controlPanel.add(showCls);
+        configureButton(startButton);
+        configureButton(returnBtn);
+        configureButton(showCls);
 
         add(controlPanel);
 
@@ -67,11 +133,11 @@ public class GameInterface extends JFrame {
         setVisible(true);
     }
 
-
     private JPanel createPlayerPanel(int playerNumber, String playerName, String playerZone) {
         JPanel playerPanel = new JPanel();
         playerPanel.setName("PlayerPanel" + playerNumber); // Establecer el nombre del panel
         playerPanel.setLayout(new BorderLayout()); // Diseño de borde para organizar las tablas
+        playerPanel.setBackground(new Color(1, 1, 18)); // Fondo del panel del jugador
 
         // Crear tabla para mostrar la información del jugador
         String[] columnNames = {"Propiedad", "Valor"};
@@ -86,6 +152,9 @@ public class GameInterface extends JFrame {
 
         JTable playerTable = new JTable(rowData, columnNames);
         JScrollPane scrollPane = new JScrollPane(playerTable);
+        playerTable.setBackground(new Color(255, 255, 255)); // Fondo de la tabla
+        playerTable.setForeground(new Color(1, 1, 18)); // Texto de la tabla
+        playerTable.setFont(new Font("Arial", Font.PLAIN, 14)); // Estilo de fuente de la tabla
         playerPanel.add(scrollPane, BorderLayout.CENTER);
         Thread updateTimeThread = new Thread(() -> {
             while (true) {
@@ -108,14 +177,55 @@ public class GameInterface extends JFrame {
         return playerPanel;
     }
 
+    public void showPartialRanking() {
+        // Crear un conjunto para rastrear jugadores únicos
+        Set<Integer> uniquePlayers = new HashSet<>();
+    
+        // Construir el contenido del JTextArea con la clasificación parcial
+        StringBuilder message = new StringBuilder("Clasificación:\n");
+    
+        // Obtener la lista de resultados de jugadores
+        List<PlayerResult> playerResults = new ArrayList<>(ThreadManage.getPlayerResults());
+    
+        // Ordenar la lista de resultados de jugadores de mayor a menor
+        playerResults.sort(Comparator.comparingInt(PlayerResult::getPoints).reversed());
+    
+        for (PlayerResult result : playerResults) {
+            int playerNumber = result.getPlayerNumber();
+    
+            // Verificar si ya se ha mostrado este jugador
+            if (!uniquePlayers.contains(playerNumber)) {
+                message.append("Jugador ").append(playerNumber)
+                        .append(": Puntos acumulados = ").append(getTotalPointsForPlayer(playerNumber)).append("\n");
+    
+                // Agregar el jugador al conjunto de jugadores únicos
+                uniquePlayers.add(playerNumber);
+            }
+        }
+    
+        // Mostrar la clasificación parcial en una ventana modal
+        JOptionPane.showMessageDialog(null, message.toString(), "Clasificación Parcial", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    
+    // Método para obtener la suma total de puntos para un jugador específico
+    private int getTotalPointsForPlayer(int playerNumber) {
+        int totalPoints = 0;
+        for (PlayerResult result : ThreadManage.getPlayerResults()) {
+            if (result.getPlayerNumber() == playerNumber) {
+                totalPoints += result.getPoints();
+            }
+        }
+        return totalPoints;
+    }
+    
+    
     private String getCurrentTime(String zoneId) {
         ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of(zoneId));
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
         return currentTime.format(formatter);
     }
-
-
 
     public void updatePlayerTimeZone(int playerNumber, String hora) {
         // Obtener la tabla correspondiente al jugador
@@ -129,8 +239,6 @@ public class GameInterface extends JFrame {
             ((AbstractTableModel) playerTable.getModel()).fireTableCellUpdated(1, 1); // Cambiado a 1
         }
     }
-
-
 
     public void updatePlayerData(int playerNumber, String hora, int numeroLanzamiento, int puntajeLanzamiento, int sumaPuntajes, int puntosRestantes) {
         // Obtener la tabla correspondiente al jugador
@@ -152,8 +260,6 @@ public class GameInterface extends JFrame {
             ((AbstractTableModel) playerTable.getModel()).fireTableCellUpdated(5, 1);
         }
     }
-
-
 
     public JTable getPlayerTable(int playerNumber) {
         Component[] components = getContentPane().getComponents();
@@ -178,10 +284,9 @@ public class GameInterface extends JFrame {
         return null;
     }
 
-
     private void startGame() {
         // Lógica para iniciar la partida
-
+        startButton.setEnabled(false);
         // Obtener el número total de juegos desde las propiedades
         int numberOfGames = Integer.parseInt(properties.getProperty("numberOfGames"));
 
@@ -189,6 +294,7 @@ public class GameInterface extends JFrame {
         for (int i = 1; i <= 5; i++) {
             PointsManage pointsManage = new PointsManage();
             JLabel playerInfoLabel = new JLabel("Información del Jugador " + i);
+            playerInfoLabel.setForeground(Color.WHITE); // Texto blanco
             // Obtener el valor de la zona horaria desde las propiedades
             String timeZone = properties.getProperty("zonePlayer" + i);
             // Pasar el valor de la zona horaria al constructor de ThreadManage
@@ -201,8 +307,8 @@ public class GameInterface extends JFrame {
             // Iniciar el hilo
             threadManage.start();
         }
+        startButton.setEnabled(true);
     }
-
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(GameInterface::new);
@@ -218,11 +324,21 @@ public class GameInterface extends JFrame {
         return null;  // Devolver null si no se encuentra el panel del jugador
     }
 
+    private void configureButton(JButton button) {
+        button.setBackground(new Color(1, 1, 18)); // Fondo del botón
+        button.setForeground(Color.WHITE); // Texto del botón
+        button.setFont(new Font("Arial", Font.BOLD, 16)); // Estilo de fuente del botón
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createCompoundBorder(
+                new EmptyBorder(10, 20, 10, 20),
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(Color.WHITE, 3),
+                        BorderFactory.createLineBorder(new Color(1, 1, 18), 3))));
+    }
+
+    private void configureComponent(JComponent component) {
+        component.setForeground(new Color(255, 255, 255)); // Texto blanco
+        component.setFont(new Font("Arial", Font.PLAIN, 14));
+        component.setBackground(new Color(1, 1, 18)); // Fondo oscuro
+    }
 }
-
-
-
-
-
-
-

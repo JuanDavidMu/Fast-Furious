@@ -17,6 +17,8 @@ public class PointsManage {
     public int getThrowsCount() {
         return throwsCount;
     }
+    
+
 
     public int getSumPoints() {
         return sumPoints;
@@ -26,4 +28,5 @@ public class PointsManage {
         // Suponiendo que el total de puntos es simplemente la suma de los puntos obtenidos
         return sumPoints;
     }
+
 }
